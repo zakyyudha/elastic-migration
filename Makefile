@@ -11,6 +11,7 @@ export
 #
 # Makefile targets:
 #   - migrate: Initiates Elasticsearch data migration for specified indices.
+#   - delete-index: Delete the destination Elasticsearch index.
 #   - kill: Terminates a specific migration process based on INDEX_DEST.
 #   - kill-all: Terminates all migration processes.
 
@@ -28,12 +29,17 @@ migrate:
   		mkdir -p $(LOG_FOLDER)/$$dest_index; \
 		LOG_FILE=$(LOG_FOLDER)/$$dest_index/output-$(TIMESTAMP).log; \
 		PID_FILE=$(LOG_FOLDER)/$$dest_index/nohup.pid; \
+		$(MAKE) delete-index INDEX_DEST=$$dest_index; \
 		$(MAKE) migrate-index INDEX_SOURCE=$$source_index INDEX_DEST=$$dest_index LOG_FILE=$$LOG_FILE PID_FILE=$$PID_FILE; \
 	done
 
 # Start Elasticsearch migration for a single index
 migrate-index:
 	nohup sh -c 'elasticdump --input=$(SOURCE_HOST)/$(INDEX_SOURCE) --output=$(DEST_HOST)/$(INDEX_DEST) --type=data > $(LOG_FILE) 2>&1 & echo $$! > $(PID_FILE)' &
+
+# Delete the destination Elasticsearch index
+delete-index:
+	curl -XDELETE "$(DEST_HOST)/$(INDEX_DEST)"
 
 # Kill a specific migration process based on INDEX_DEST
 kill:
