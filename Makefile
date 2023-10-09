@@ -6,6 +6,7 @@ export
 #
 # Usage:
 #   - To start Elasticsearch migration:       make migrate
+#   - To start reindexing:                    make reindex
 #   - To kill a specific migration process:   make kill INDEX_DEST=<your_index_dest>
 #   - To kill all migration processes:        make kill-all
 #
@@ -15,7 +16,7 @@ export
 #   - kill: Terminates a specific migration process based on INDEX_DEST.
 #   - kill-all: Terminates all migration processes.
 
-.PHONY: migrate migrate-index kill kill-all
+.PHONY: migrate migrate-index reindex kill kill-all
 
 TIMESTAMP = $(shell date +'%Y-%m-%d_%H%M%S')
 LOG_FOLDER = logs
@@ -36,6 +37,14 @@ migrate:
 # Start Elasticsearch migration for a single index
 migrate-index:
 	nohup sh -c 'elasticdump --input=$(SOURCE_HOST)/$(INDEX_SOURCE) --output=$(DEST_HOST)/$(INDEX_DEST) --type=data > $(LOG_FILE) 2>&1 & echo $$! > $(PID_FILE)' &
+
+# Start Elasticsearch reindexing for all specified indices
+reindex:
+	mkdir -p $(LOG_FOLDER); \
+	mkdir -p $(LOG_FOLDER)/reindex; \
+	export PID_FILE=$(LOG_FOLDER)/reindex/nohup.pid; \
+	export LOG_FILE=$(LOG_FOLDER)/reindex/output-$(TIMESTAMP).log; \
+	nohup ./scripts/reindex.sh $(DEST_HOST) "$(REINDEX_INDICES)" > $$LOG_FILE 2>&1 & echo $$! > $$PID_FILE
 
 # Delete the destination Elasticsearch index
 delete-index:
